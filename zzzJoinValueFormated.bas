@@ -110,9 +110,9 @@ Public Sub S_joinF_callback(ByVal hwnd&, ByVal wMsg&, ByVal idEvent&, ByVal dwTi
 End Sub
 
 Sub S_joinF_working()
-  'On Error Resume Next
+  On Error Resume Next
   Dim A As Application, b As FontFormatArguments, i&, k&
-  Dim u%, su As Boolean, Ac As Boolean, ec As Boolean
+  Dim u%, su As Boolean, Ac As Boolean, ec As Boolean, c As Object
   u = UBound(Works)
   For i = 1 To u
     b = Works(i)
@@ -120,8 +120,8 @@ Sub S_joinF_working()
     Case 0
       If b.caller.Formula = b.Formula Then
         If A Is Nothing Then
-          
-          Call savedClipboardText
+          Set c = Application.ActiveSheet
+          'Call savedClipboardText
           Set A = b.caller.Parent.Parent.Parent
           su = A.ScreenUpdating
           Ac = A.Calculation
@@ -145,7 +145,10 @@ n:
     Erase Works
   End If
   If Not A Is Nothing Then
-    Call savedClipboardText
+    If Not c Is Nothing And Not c Is Application.ActiveSheet Then
+      c.Activate
+    End If
+    'Call savedClipboardText
     If su And A.ScreenUpdating <> su Then
       A.ScreenUpdating = su
     End If
