@@ -1,6 +1,6 @@
 # JoinCellsSavedFormated_ExcelWorksheet
  Join Cells Saved Formated - Excel Worksheet
-HÀM UDF TỰ ĐỘNG NỐI CHUỖI GIỮ ĐỊNH DẠNH
+HÀM UDF TỰ ĐỘNG NỐI CHUỖI GIỮ ĐỊNH DẠNG
 
 với Hàm S_JoinF
 
