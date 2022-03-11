@@ -22,7 +22,5 @@ Cách 3 (gộp tại ô giá trị): =S_JoinF(C1:C4, " ",C1:C4)
 Ở đây ô C1 là ô đầu tiên nhập vào nên được chọn làm ô để đặt chiều rộng cột ô đã gộp
 
 				
-![image](https://user-images.githubusercontent.com/58664571/157866453-9c6220bd-4a0f-4902-a919-b674a59166d9.png)
 
-
-
+![Join_Fonts_Formating](https://user-images.githubusercontent.com/58664571/157867247-2b802a15-b20f-4cce-89ad-efc67d157146.jpg)
