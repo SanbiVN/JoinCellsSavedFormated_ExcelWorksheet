@@ -5,17 +5,18 @@ Public Const project_name = "S_joinF"
 Public Const project_Version = "1.0"
 Public Const urlGithub = ""
 
-#If VBA7 Then
-  Public Declare PtrSafe Function SetTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As LongPtr, ByVal lpTimerFunc As LongPtr) As Long
-  Public Declare PtrSafe Function KillTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
-#Else
-  Public Declare Function SetTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
-  Public Declare Function KillTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long) As Long
-#End If
+
 
 #If Mac Then
 ''
 #Else
+  #If VBA7 Then
+    Private Declare PtrSafe Function SetTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As LongPtr, ByVal lpTimerFunc As LongPtr) As Long
+    Private Declare PtrSafe Function KillTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
+  #Else
+    Private Declare Function SetTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
+    Private Declare Function KillTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long) As Long
+  #End If
   #If VBA7 Then
     Private Declare PtrSafe Function GetClipboardData Lib "User32" (ByVal wFormat As LongPtr) As LongPtr
     Private Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
@@ -39,7 +40,6 @@ Public Const urlGithub = ""
     Private Declare Function lstrcpy Lib "kernel32" (ByVal lpString1 As Any, ByVal lpString2 As Any) As Long
     Private Declare Function SetClipboardData Lib "user32" (ByVal wFormat As Long, ByVal hMem As Long) As Long
   #End If
-#End If
 
 Private Const MaxH = 1450, MaxV = 409
 
@@ -189,9 +189,6 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
     End Select
     For Each Cell In bCell
       If TypeName(Cell) = "Range" Then
-        If ft Is Nothing Then
-          Set ft = Cell(1, 1)
-        End If
         If u = 0 Then
           For Each target In Cell
             Addr = target.Address(0, 0)
@@ -226,11 +223,19 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
     .VerticalAlignment = ft.VerticalAlignment
     .WrapText = True
   End With
-  SetNewWidthArea toCell, ft
+  If ft.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
+    SetNewWidthArea toCell, ft
+  End If
   Application.DisplayAlerts = True
 e:
 Exit Sub
 Cell:
+  If target.value = Empty Then
+    Return
+  End If
+  If ft Is Nothing Then
+    Set ft = target(1, 1)
+  End If
   Application.CutCopyMode = False
   With target.Worksheet.Parent.PublishObjects.Add(4, FileName, target.Parent.name, Addr, 0, "cell", "")
     .Publish (False)
@@ -618,3 +623,4 @@ Private Function SetNewWidthArea(ByVal NewCell As Range, ByVal CellMerge As Rang
 End Function
 
 
+#End If
