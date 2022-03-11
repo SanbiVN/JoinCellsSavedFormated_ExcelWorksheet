@@ -163,14 +163,21 @@ n:
 End Sub
 Private Sub AddCellHasFormatByHtml_test()
   ''AddCellHasFormatByHtml [B1], " ", Array([C1], [c2], [C3], [C4], [C5])
-  AddCellHasFormatByHtml [B1], " ", [C1:C5]
+  AddCellHasFormatByHtml [B1:B7], " ", [C1:C5]
 End Sub
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
-  ''On Error GoTo e
-  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, cs4$, s4$, s5$, s6$
-  Dim temp$, Addr$, Class$, u%
-  Dim r, p, p2, i%:
+  Const n_ = vbNullString
+  On Error Resume Next
+  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, s5$, s6$, s7$
+  Dim temp$, Addr$, Class&, nClass&, Font&, nFont&, u%
+  Dim r, p, p1, p2, i%:
 
+  Dim re, mre, i2, ims
+  Set re = glbRegex
+
+  re.Pattern = "(<font[^>]*?>(\s*<(?:[BIU]|(?:SUP)) ?.*?>)*)" & "([^<]+?)(" & _
+             "(?:(?:\s*</(?:[BIU]|(?:SUP)).*?>\s*)+|(?:<BR>\s*)|)+</font>)"
+  
   temp = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\"
 
   u = UBound(Cells)
@@ -204,8 +211,8 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
 
   Application.DisplayAlerts = False
   Application.Goto toCell, 0
-  TextToClipBoard s1 & s2 & s3 & s4 & s5 & s6
-  
+  TextToClipBoard s1 & s2 & s3 & s4 & s5
+
   Dim rs, cs
   
   rs = toCell.rows.Count
@@ -214,6 +221,11 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   toCell.MergeCells = False
   toCell.Worksheet.Paste
   toCell.Resize(rs, cs).merge
+  With toCell
+    .HorizontalAlignment = ft.HorizontalAlignment
+    .VerticalAlignment = ft.VerticalAlignment
+    .WrapText = True
+  End With
   SetNewWidthArea toCell, ft
   Application.DisplayAlerts = True
 e:
@@ -224,37 +236,100 @@ Cell:
     .Publish (False)
     .AutoRepublish = False
     s = readHTMLFile2(FileName)
-    GoSub readStyles
-    cs4 = sentenceSpace
-    For i = 0 To UBound(p) - 1
-      p2 = Split(p(i), """>", 2)
-      s4 = s4 & p2(0) & """>" & cs4 & p2(1) & "</font>"
-      cs4 = ""
-    Next
     .Delete
   End With
   VBA.Kill FileName
+  GoSub read
 Return
-readStyles:
+read:
   p = Split(s, """;}", 2, 1)
   If s1 = "" Then
     s1 = p(0) & """;}"
   End If
   p = Split(p(1), "-->", 2, 1)
-  s2 = s2 & p(0)
+  s6 = p(0)
   p = Split("-->" & p(1), "<font ", 2, 1)
-  Class = Split(p(0), "class=xl", 2, 1)(1)
-  Class = Split(Class, " ", 2, 1)(0)
-  If s3 = "" Then
+  If s3 = n_ Then
     s3 = p(0)
   End If
+  
+  Class = Split(Split(p(0), "class=xl", 2, 1)(1), " ", 2, 1)(0)
+  nClass = Class
+  
   p = Split("<font " & p(1), "</font>", , 1)
-  p(0) = "<font class=""xl" & Class & """" & p(0)
-  If s5 = "" Then
+  If s5 = n_ Then
     s5 = p(UBound(p))
   End If
+  p(UBound(p)) = ""
+
+l:
+  If s2 Like "*xl" & nClass & "*" Then
+    nClass = nClass + 1: GoTo l
+  Else
+    s6 = Replace(s6, "xl" & Class, "xl" & nClass)
+    Class = nClass
+  End If
+  p(0) = "<font class=""xl" & Class & """" & p(0)
+  s7 = Join(p, "</font>")
+  
+  If s2 <> n_ Then
+    p1 = Split(s6, ".font")
+    For i = 1 To UBound(p1)
+      Font = Split(p1(i), vbNewLine)(0)
+      nFont = Font
+r:
+      If s2 Like "*.font" & nFont & "*" Then
+        nFont = nFont + 1: GoTo r
+      Else
+        s6 = Replace(s6, ".font" & Font, ".font" & nFont)
+        s7 = Replace(s7, "font" & Font, "font" & nFont)
+      End If
+    Next
+  End If
+  s2 = s2 & s6
+
+  Set mre = re.Execute(s7)
+
+  If mre.Count Then
+    For i2 = 0 To mre.Count - 1
+      Set ims = mre(i2).submatches
+      s4 = s4 & ims(0) & sentenceSpace & ims(2) & ims(3)
+    Next
+  End If
 Return
+
 End Sub
+
+Sub FileFastSave(Text$, Optional FileName$, Optional ByVal deleteAfterOpen As Boolean)
+  If FileName = vbNullString Then
+    FileName = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\text" & VBA.Timer & ".html"
+  End If
+  With VBA.CreateObject("ADODB.Stream")
+    .Type = 2 'Stream type
+    .Charset = "utf-8" 'or utf-16 etc
+    .Open
+    .WriteText Text
+    .SaveToFile FileName, 2 'Save binary data To disk
+  End With
+  On Error Resume Next
+  openFileWithEditor FileName
+  If deleteAfterOpen Then
+    VBA.Kill FileName
+  End If
+End Sub
+Sub openFileWithEditor(ByVal FileName$)
+  On Error Resume Next
+  Shell "D:\Program Files\Microsoft VS Code\Code.exe -r """ & FileName & """", vbNormalFocus
+  If VBA.Err Then
+    VBA.Err.Clear
+    Shell "D:\Program Files\Notepad++\notepad++.exe """ & FileName & """", vbNormalFocus
+    If VBA.Err Then
+      VBA.Err.Clear
+      Shell "notepad """ & FileName & """", vbNormalFocus
+    End If
+  End If
+End Sub
+
 Private Sub SetNewHeightArea_test()
   SetNewHeightArea [A26], [d3]
 End Sub
