@@ -77,7 +77,7 @@ Function S_joinF(ByVal toCell As Range, _
         Case 2: .action = 3
             S_joinF = "S_joinF: Ho" & ChrW(224) & "n th" & ChrW(224) & "nh"
             GoTo n
-        Case Else: .action = 0: GoTo r
+        Case Else: k = i: .action = 0: GoTo r
         End Select
       End If
     End With
