@@ -169,7 +169,8 @@ Private Sub AddCellHasFormatByHtml_test()
 End Sub
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
   Const n_ = vbNullString
-  On Error Resume Next
+  ''On Error Resume Next
+  
   Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, ss4$, s5$, s6$, s7$
   Dim temp$, Addr$, Class&, nClass&, Font&, nFont&, u%
   Dim r, p, p1, p2, i%:
@@ -225,7 +226,7 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
     .VerticalAlignment = ft.VerticalAlignment
     .WrapText = True
   End With
-  If ft.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
+  If toCell.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
     SetNewWidthArea toCell, ft
   End If
   Application.DisplayAlerts = True
