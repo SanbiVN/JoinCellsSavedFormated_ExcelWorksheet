@@ -1,9 +1,8 @@
-''Attribute VB_Name = "zzzJoinValueFormated"
 Option Explicit
 Option Compare Text
 Public Const project_name = "S_joinF"
 Public Const project_Version = "1.0"
-Public Const urlGithub = ""
+Public Const urlGithub = "https://github.com/SanbiVN/JoinCellsSavedFormated_ExcelWorksheet"
 
 
 
@@ -178,9 +177,9 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   Dim re, mre, i2, ims
   Set re = glbRegex
 
-  re.Pattern = "(<font[^>]*?>(\s*<(?:[BIU]|(?:SUP)) ?.*?>)*)" & "([^<]+?)(" & _
-             "(?:(?:\s*</(?:[BIU]|(?:SUP)).*?>\s*)+|(?:<BR>\s*)|)+</font>)"
-  
+  re.Pattern = "(<font[^>]*?>(\s*<(?:[BIU]|(?:SUP)) ?.*?>)*)((?:[^<]|(?:<BR>))+?)(" & _
+             "(?:(?:\s*</(?:[BIU]|(?:SUP)).*?>\s*)+|)+</font>)"
+
   temp = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\"
 
   u = UBound(Cells)
