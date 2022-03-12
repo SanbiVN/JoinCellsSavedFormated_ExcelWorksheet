@@ -176,10 +176,12 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
 
   Dim re, mre, i2, ims
   Set re = glbRegex
-
+  
+  
   re.Pattern = "(<font[^>]*?>(\s*<(?:[BIU]|(?:SUP)) ?.*?>)*)((?:[^<]|(?:<BR>))+?)(" & _
              "(?:(?:\s*</(?:[BIU]|(?:SUP)).*?>\s*)+|)+</font>)"
 
+  
   temp = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\"
 
   u = UBound(Cells)
@@ -193,14 +195,10 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
       If TypeName(Cell) = "Range" Then
         If u = 0 Then
           For Each target In Cell
-            Addr = target.Address(0, 0)
-            FileName = temp & Addr & "_" & VBA.Timer & ".html"
             GoSub Cell
           Next
         Else
           Set target = Cell
-          Addr = target.Address(0, 0)
-          FileName = temp & Addr & "_" & VBA.Timer & ".html"
           GoSub Cell
         End If
       End If
@@ -235,6 +233,9 @@ Cell:
   If target.value = Empty Then
     Return
   End If
+
+  Addr = target.Address(0, 0)
+  FileName = temp & Addr & "_" & VBA.Timer & ".html"
   If ft Is Nothing Then
     Set ft = target(1, 1)
   End If
