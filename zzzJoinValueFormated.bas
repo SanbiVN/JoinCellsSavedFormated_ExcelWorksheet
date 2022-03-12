@@ -1,4 +1,4 @@
-Attribute VB_Name = "zzzJoinValueFormated"
+''Attribute VB_Name = "zzzJoinValueFormated"
 Option Explicit
 Option Compare Text
 Public Const project_name = "S_joinF"
