@@ -57,7 +57,9 @@ End Type
 ''''///////////////////////////////////////////////////////
 Public ContainCells As New VBA.Collection, FitDisable As Boolean
 Private Works() As FontFormatArguments
-
+Private Sub s_join_test()
+  Debug.Print UBound(Works)
+End Sub
 Function S_joinF(ByVal toCell As Range, _
                   ByVal sentenceSpace As String, _
                   ParamArray Cells())
@@ -168,7 +170,7 @@ End Sub
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
   Const n_ = vbNullString
   On Error Resume Next
-  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, s5$, s6$, s7$
+  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, ss4$, s5$, s6$, s7$
   Dim temp$, Addr$, Class&, nClass&, Font&, nFont&, u%
   Dim r, p, p1, p2, i%:
 
@@ -238,7 +240,7 @@ Cell:
   End If
   Application.CutCopyMode = False
   With target.Worksheet.Parent.PublishObjects.Add(4, FileName, target.Parent.name, Addr, 0, "cell", "")
-    .Publish (False)
+    .Publish (True)
     .AutoRepublish = False
     s = readHTMLFile2(FileName)
     .Delete
@@ -296,9 +298,11 @@ r:
   Set mre = re.Execute(s7)
 
   If mre.Count Then
+    ss4 = sentenceSpace
     For i2 = 0 To mre.Count - 1
       Set ims = mre(i2).submatches
-      s4 = s4 & ims(0) & sentenceSpace & ims(2) & ims(3)
+      s4 = s4 & ims(0) & ss4 & ims(2) & ims(3)
+      ss4 = n_
     Next
   End If
 Return
