@@ -241,7 +241,7 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
 e:
 Exit Sub
 Cell:
-  'On Error Resume Next
+  On Error Resume Next
   Set rg = Nothing
   Set rg = target.Find("*")
   If rg Is Nothing Then
@@ -259,9 +259,9 @@ Cell:
     .AutoRepublish = False
     s = readHTMLFile2(FileName)
     
-    .Delete
+    .Delete: VBA.Kill FileName
   End With
-  VBA.Kill FileName
+  
   
   If Not s Like "*<html*" Then
     Return
@@ -318,6 +318,7 @@ ver:
   End If
 
   Dim p
+  
   re.Global = True
   If ovs Then
     p = Split(s, "<td ", 2, 1)
@@ -327,7 +328,7 @@ ver:
     s = p(1)
     re.Pattern = "(?:</td>)?[^<>]*<td[^<>]*class=(xl\d+)[^<>]*>((?:[\r\n]|.)+?)((?:<font)|(?:</td>))"
     If re.test(s) Then
-      s = re.Replace(s, "<font class=""$1"">$2</font>$3")
+      s = re.Replace(s, "<font class=""$1"">" & s5 & "$2</font>$3")
     End If
     s = s4 & s
     If s1 <> vbNullString Then
