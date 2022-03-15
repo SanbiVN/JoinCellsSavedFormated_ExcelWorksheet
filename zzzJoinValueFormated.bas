@@ -106,15 +106,23 @@ Public Sub S_joinF_callback(ByVal hwnd&, ByVal wMsg&, ByVal idEvent&, ByVal dwTi
 #End If
   On Error Resume Next
   KillTimer 0&, idEvent
-  S_joinF_working
   On Error GoTo 0
+  If Not FitDisable Then
+    FitDisable = True
+    Exit Sub
+  End If
+  S_joinF_working
 End Sub
 
 Sub S_joinF_working()
-  On Error Resume Next
   Dim A As Application, b As FontFormatArguments, i&, k&
   Dim u%, su As Boolean, Ac As Boolean, ec As Boolean, c As Object
+  On Error Resume Next
   u = UBound(Works)
+  On Error GoTo 0
+  If u = 0 Then
+    Exit Sub
+  End If
   For i = 1 To u
     b = Works(i)
     Select Case b.action
@@ -166,22 +174,23 @@ Private Sub AddCellHasFormatByHtml_test()
   ''AddCellHasFormatByHtml [B1], " ", Array([C1], [c2], [C3], [C4], [C5])
   AddCellHasFormatByHtml [B1:B7], " ", [C1:C5]
 End Sub
+
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
   Const n_ = vbNullString
   ''On Error Resume Next
+  Dim rs, cs
   
-  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, ss4$, s5$, s6$, s7$
-  Dim temp$, Addr$, Class&, nClass&, Font&, nFont&, u%
-  Dim r, p, p1, p2, i%:
-
-  Dim re, mre, i2, ims
+  rs = toCell.rows.Count
+  cs = toCell.Columns.Count
+  
+  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$
+  Dim temp$, Addr$, u%, rg As Range
+  Dim p1, i&, ovs As Boolean, b As Boolean
+  ovs = Application.Version < 16
+  Dim re, re2, mre, i2, ims
   Set re = glbRegex
-  
-  
-  re.Pattern = "(<font[^>]*?>(\s*<(?:[BIU]|(?:SUP)) ?.*?>)*)((?:[^<]|(?:<BR>))+?)(" & _
-             "(?:(?:\s*</(?:[BIU]|(?:SUP)).*?>\s*)+|)+</font>)"
+  Set re2 = glbRegex
 
-  
   temp = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\"
 
   u = UBound(Cells)
@@ -193,126 +202,147 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
     End Select
     For Each Cell In bCell
       If TypeName(Cell) = "Range" Then
-        If u = 0 Then
-          For Each target In Cell
-            GoSub Cell
-          Next
-        Else
-          Set target = Cell
+        For Each target In Cell.Areas
           GoSub Cell
-        End If
+        Next
       End If
     Next
   Next
 
 
-  Application.DisplayAlerts = False
-  Application.Goto toCell, 0
-  TextToClipBoard s1 & s2 & s3 & s4 & s5
 
-  Dim rs, cs
-  
-  rs = toCell.rows.Count
-  cs = toCell.Columns.Count
-  
+  'FileFastSave s1, newfile:=False
+  If s1 = Empty Then
+    GoTo e
+  End If
+  Application.DisplayAlerts = False
+  Application.CutCopyMode = 0
+  TextToClipBoard s1
   toCell.MergeCells = False
+  Application.Goto toCell(1, 1), 0
   toCell.Worksheet.Paste
   toCell.Resize(rs, cs).merge
-  With toCell
-    .HorizontalAlignment = ft.HorizontalAlignment
-    .VerticalAlignment = ft.VerticalAlignment
-    .WrapText = True
-  End With
-  If toCell.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
-    SetNewWidthArea toCell, ft
+  If Not ft Is Nothing Then
+    With toCell
+      .HorizontalAlignment = ft.HorizontalAlignment
+      .VerticalAlignment = ft.VerticalAlignment
+      .WrapText = True
+    End With
+    If toCell.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
+      SetNewWidthArea toCell, ft
+    End If
   End If
   Application.DisplayAlerts = True
 e:
 Exit Sub
 Cell:
-  If target.value = Empty Then
+  'On Error Resume Next
+  Set rg = Nothing
+  Set rg = target.Find("*")
+  If rg Is Nothing Then
     Return
   End If
 
   Addr = target.Address(0, 0)
-  FileName = temp & Addr & "_" & VBA.Timer & ".html"
+  FileName = temp & Replace(Addr, ":", "_") & "_" & VBA.Timer & ".html"
   If ft Is Nothing Then
     Set ft = target(1, 1)
   End If
   Application.CutCopyMode = False
   With target.Worksheet.Parent.PublishObjects.Add(4, FileName, target.Parent.name, Addr, 0, "cell", "")
-    .Publish (True)
+    .Publish (False)
     .AutoRepublish = False
     s = readHTMLFile2(FileName)
+    
     .Delete
   End With
   VBA.Kill FileName
-  GoSub read
-Return
-read:
-  p = Split(s, """;}", 2, 1)
-  If s1 = "" Then
-    s1 = p(0) & """;}"
-  End If
-  p = Split(p(1), "-->", 2, 1)
-  s6 = p(0)
-  p = Split("-->" & p(1), "<font ", 2, 1)
-  If s3 = n_ Then
-    s3 = p(0)
+  
+  If Not s Like "*<html*" Then
+    Return
   End If
   
-  Class = Split(Split(p(0), "class=xl", 2, 1)(1), " ", 2, 1)(0)
-  nClass = Class
-  
-  p = Split("<font " & p(1), "</font>", , 1)
-  If s5 = n_ Then
-    s5 = p(UBound(p))
-  End If
-  p(UBound(p)) = ""
-
-l:
-  If s2 Like "*xl" & nClass & "*" Then
-    nClass = nClass + 1: GoTo l
-  Else
-    s6 = Replace(s6, "xl" & Class, "xl" & nClass)
-    Class = nClass
-  End If
-  p(0) = "<font class=""xl" & Class & """" & p(0)
-  s7 = Join(p, "</font>")
-  
-  If s2 <> n_ Then
-    p1 = Split(s6, ".font")
-    For i = 1 To UBound(p1)
-      Font = Split(p1(i), vbNewLine)(0)
-      nFont = Font
-r:
-      If s2 Like "*.font" & nFont & "*" Then
-        nFont = nFont + 1: GoTo r
-      Else
-        s6 = Replace(s6, ".font" & Font, ".font" & nFont)
-        s7 = Replace(s7, "font" & Font, "font" & nFont)
-      End If
-    Next
-  End If
-  s2 = s2 & s6
-
-  Set mre = re.Execute(s7)
-
-  If mre.Count Then
-    ss4 = sentenceSpace
+  GoSub ver
+  If s1 <> Empty Then
+    re.Global = 1: re.Pattern = "\.((?:(?:xl)|(?:font)))(\d+)([^\}]+\})"
+    Set mre = re.Execute(s)
+    s2 = vbNullString
     For i2 = 0 To mre.Count - 1
       Set ims = mre(i2).submatches
-      s4 = s4 & ims(0) & ss4 & ims(2) & ims(3)
-      ss4 = n_
+      i = ims(1): b = False
+re:
+      re2.Pattern = ims(0) & i
+      If re2.test(s1) Then
+        i = i + 1: b = True: GoTo re
+      Else
+        If b Then
+          re2.Pattern = ims(0) & ims(1)
+          s = re2.Replace(s, ims(0) & i)
+        End If
+      End If
+      s2 = s2 & vbLf & "." & ims(0) & i & ims(2)
     Next
+    s3 = vbNullString
+    s3 = "<font " & Split(s, "<font ", 2, 1)(1)
+    s3 = Split(s3, "</font></td>", , 1)(0) & "</font>"
+
+    If s2 <> vbNullString Then
+      s1 = Replace(s1, "}-->", "}" & s2 & "-->")
+    End If
+    s1 = Replace(s1, "</font></td></tr>", "</font>" & s3 & "</td></tr>")
+  Else
+    s1 = s
+    re.Global = 0: re.Pattern = "</font>[^<>]*</td>[^<>]*</tr>"
+    s1 = re.Replace(s1, "</font></td></tr>")
+    re.Pattern = "(\})[^\-]*(\-\->)"
+    s1 = re.Replace(s1, "$1$2")
   End If
 Return
 
+ver:
+  re.MultiLine = True
+  s = Replace(s, vbCr, "")
+  re.Pattern = "<!--.+-->\r?\n?"
+  If re.test(s) Then
+    s = re.Replace(s, "")
+  End If
+
+  re.Pattern = "[\r\n ]*</tr>[^<>]*<tr [^<>]*>[\r\n ]*"
+  If re.test(s) Then
+    s = re.Replace(s, "")
+  End If
+
+  Dim p
+  re.Global = True
+  If ovs Then
+    p = Split(s, "<td ", 2, 1)
+    s4 = p(0) & "<td "
+    p = Split(p(1), "'>", 2, 1)
+    s4 = s4 & p(0) & "'>"
+    s = p(1)
+    re.Pattern = "(?:</td>)?[^<>]*<td[^<>]*class=(xl\d+)[^<>]*>((?:[\r\n]|.)+?)((?:<font)|(?:</td>))"
+    If re.test(s) Then
+      s = re.Replace(s, "<font class=""$1"">$2</font>$3")
+    End If
+    s = s4 & s
+    If s1 <> vbNullString Then
+      If re.test(s) Then
+        s = re.Replace(s, "<font class=""$1"">$2</font>$3")
+      End If
+    End If
+  Else
+    re.Pattern = "<td[^<>]*class=(xl\d+)[^<>]*><font face"
+    If re.test(s) Then s = re.Replace(s, "<font class=""$1"" face")
+    re.Pattern = "</td>[^<>]*?<td[^<>]*?>"
+    If re.test(s) Then s = re.Replace(s, "")
+    s = s4 & s
+  End If
+Return
 End Sub
 
-Sub FileFastSave(Text$, Optional FileName$, Optional ByVal deleteAfterOpen As Boolean)
+Sub FileFastSave(Text$, Optional FileName$, Optional ByVal newfile As Boolean, Optional ByVal deleteAfterOpen As Boolean)
   If FileName = vbNullString Then
-    FileName = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\text" & VBA.Timer & ".html"
+    FileName = IIf(Environ("tmp") <> "", Environ("tmp"), Environ("temp")) & "\VBE\text" & IIf(newfile, VBA.Timer, "") & ".html"
   End If
   With VBA.CreateObject("ADODB.Stream")
     .Type = 2 'Stream type
@@ -329,15 +359,15 @@ Sub FileFastSave(Text$, Optional FileName$, Optional ByVal deleteAfterOpen As Bo
 End Sub
 Sub openFileWithEditor(ByVal FileName$)
   On Error Resume Next
-  Shell "D:\Program Files\Microsoft VS Code\Code.exe -r """ & FileName & """", vbNormalFocus
-  If VBA.Err Then
-    VBA.Err.Clear
+'  Shell "D:\Program Files\Microsoft VS Code\Code.exe -r """ & FileName & """", vbNormalFocus
+'  If VBA.Err Then
+'    VBA.Err.Clear
     Shell "D:\Program Files\Notepad++\notepad++.exe """ & FileName & """", vbNormalFocus
     If VBA.Err Then
       VBA.Err.Clear
       Shell "notepad """ & FileName & """", vbNormalFocus
     End If
-  End If
+  'End If
 End Sub
 
 Private Sub SetNewHeightArea_test()
@@ -459,7 +489,7 @@ End Function
 Public Function readHTMLFile2(strFile As String) As String
   Dim f As Long, s$: f = FreeFile
   Open strFile For Input As #f
-  s = input$(LOF(f), #f)
+  s = Input$(LOF(f), #f)
   Close #f
   ''s = Join(Split(s, vbNewLine & "  "), vbNullString)
   ''s = Join(Split(s, vbNewLine), " ")
@@ -606,20 +636,20 @@ End Function
 
 Private Function SetNewWidthArea(ByVal NewCell As Range, ByVal CellMerge As Range) As Boolean
   Dim w!, W2!, k&
-  W2 = CellMerge.MergeArea.Columns.Width
+  W2 = CellMerge.MergeArea.Columns.width
   If W2 > MaxH Then
     Exit Function
   End If
   w = W2 / 6.05
   NewCell.EntireColumn.ColumnWidth = w
-  If NewCell.Width >= W2 Then
+  If NewCell.width >= W2 Then
     Do
       w = w - 0.3
       NewCell.EntireColumn.ColumnWidth = w
       k = k + 1
-    Loop Until NewCell.Width <= W2
+    Loop Until NewCell.width <= W2
   End If
-  Do Until NewCell.Width >= W2
+  Do Until NewCell.width >= W2
     w = w + 0.1
     k = k + 1
     NewCell.EntireColumn.ColumnWidth = w
@@ -629,3 +659,5 @@ End Function
 
 
 #End If
+
+
