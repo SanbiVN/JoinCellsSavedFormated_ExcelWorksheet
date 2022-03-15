@@ -184,14 +184,15 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   ''On Error Resume Next
   Dim rs, cs
   
+  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, s5$
+  Dim temp$, Addr$, u%, rg As Range
+  
+  Dim p1, i&, ovs As Boolean, b As Boolean
+  Dim re, re2, mre, i2, ims
+  ovs = Application.Version < 16
   rs = toCell.rows.Count
   cs = toCell.Columns.Count
-  
-  Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$
-  Dim temp$, Addr$, u%, rg As Range
-  Dim p1, i&, ovs As Boolean, b As Boolean
-  ovs = Application.Version < 16
-  Dim re, re2, mre, i2, ims
+  s5 = sentenceSpace
   Set re = glbRegex
   Set re2 = glbRegex
 
@@ -331,12 +332,13 @@ ver:
     s = s4 & s
     If s1 <> vbNullString Then
       If re.test(s) Then
-        s = re.Replace(s, "<font class=""$1"">$2</font>$3")
+        re.Global = False
+        s = re.Replace(s, "<font class=""$1"">" & s5 & "$2</font>$3")
       End If
     End If
   Else
-    re.Pattern = "<td[^<>]*class=(xl\d+)[^<>]*><font face"
-    If re.test(s) Then s = re.Replace(s, "<font class=""$1"" face")
+    re.Pattern = "<td[^<>]*class=(xl\d+)[^<>]*><font (face[^<>]*>)"
+    If re.test(s) Then s = re.Replace(s, "<font class=""$1"" $2" & s5)
     re.Pattern = "</td>[^<>]*?<td[^<>]*?>"
     If re.test(s) Then s = re.Replace(s, "")
     s = s4 & s
