@@ -67,7 +67,11 @@ Function S_joinF(ByVal toCell As Range, _
   Dim r As Object, s$, k%, i%
   Set r = Application.caller
   s = r.Address(0, 0, external:=1)
-  S_joinF = "S_joinF: " & ChrW(272) & "ang g" & ChrW(7897) & "p"
+  If r.Parent.ProtectContents Then
+    S_joinF = "S_joinF: Locked"
+  Else
+    S_joinF = "S_joinF: " & ChrW(272) & "ang g" & ChrW(7897) & "p"
+  End If
   k = UBound(Works)
   For i = 1 To k
     With Works(i)
