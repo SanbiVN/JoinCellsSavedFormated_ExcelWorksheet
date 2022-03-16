@@ -181,13 +181,15 @@ n:
 End Sub
 Private Sub AddCellHasFormatByHtml_test()
   ''AddCellHasFormatByHtml [B1], " ", Array([C1], [c2], [C3], [C4], [C5])
-  AddCellHasFormatByHtml [B1:B7], " ", [C1:C5]
+  On Error Resume Next
+  Kill Environ("temp") & "\VBE\*.htm*"
+  'AddCellHasFormatByHtml [B1:B7], " ", [C1:C5]
 End Sub
 
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
-  Debug.Print "AddCellHasFormatByHtml"
+
   Const n_ = vbNullString
-  ''On Error Resume Next
+  On Error Resume Next
   Dim rs, cs
   
   Dim target, ft As Range, Cell, bCell, cCell, FileName$, s$, s1$, s2$, s3$, s4$, s5$
@@ -198,7 +200,6 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   ovs = Application.Version < 16
   rs = toCell.rows.Count
   cs = toCell.Columns.Count
-  s5 = sentenceSpace
 
   Set re = glbRegex
   Set re2 = glbRegex
@@ -255,7 +256,7 @@ Cell:
   If rg Is Nothing Then
     Return
   End If
-
+  
   Addr = target.Address(0, 0)
   FileName = temp & Replace(Addr, ":", "_") & "_" & VBA.Timer & ".html"
   If ft Is Nothing Then
@@ -266,7 +267,6 @@ Cell:
     .Publish (False)
     .AutoRepublish = False
     s = readHTMLFile2(FileName)
-    
     .Delete: VBA.Kill FileName
   End With
   
@@ -277,6 +277,7 @@ Cell:
   
   GoSub ver
   If s1 <> Empty Then
+    re2.Global = True
     re.Global = 1: re.Pattern = "\.((?:(?:xl)|(?:font)))(\d+)([^\}]+\})"
     Set mre = re.Execute(s)
     s2 = vbNullString
@@ -314,60 +315,61 @@ Return
 
 ver:
   re.MultiLine = True
-  s = Replace(s, vbCr, "")
-  re.Pattern = "<!--.+-->\r?\n?"
+
+  Dim p, p2
+  p = Split(s, "</style>", 2, 1)
+  p(0) = p(0) & "</style>"
+  s = p(1)
+  'xóa td
+  re.Pattern = "[\r\n ]*<td [^>]*?>[\r\n ]*?</td>[\r\n ]*"
   If re.test(s) Then
     s = re.Replace(s, "")
   End If
-
-  re.Pattern = "<tr [^<>]*>([\r\n ]*<td [^<>]*>[\r\n]*</td>[^<>]*)+</tr>[^<>]*"
+  'xóa tr
+  re.Pattern = "[\r\n ]*</tr>(?:[\r\n]|.)*?<tr [^>]+>[\r\n ]*?"
   If re.test(s) Then
     s = re.Replace(s, "")
   End If
   
-  re.Pattern = "[\r\n ]*</tr>[^<>]*<tr [^<>]*>[\r\n ]*"
+  'xóa comment
+  re.Pattern = "[\r\n ]*<!--(?:[\r\n]|.)*?-->[\r\n ]*?"
   If re.test(s) Then
     s = re.Replace(s, "")
   End If
-
-  Dim p
   
   re.Global = True
+  s5 = sentenceSpace
+
   If ovs Then
-    GoSub tach
-    re.Pattern = "(?:</td>)?[^<>]*<td[^<>]*class=(xl\d+)[^<>]*>((?:[\r\n]|.)+?)((?:<font)|(?:</td>))"
+    re.Pattern = "(<td[^<>]*class=(xl\d+)[^<>]*>)((?:[\r\n]|.)+?)((?:<font)|(?:</td>))"
     If re.test(s) Then
-      s = re.Replace(s, "<font class=""$1"">" & s5 & "$2</font>$3")
-    End If
-    s = s4 & s
-    If s1 <> vbNullString Then
-      If re.test(s) Then
-        re.Global = False
-        s = re.Replace(s, "<font class=""$1"">" & s5 & "$2</font>$3")
-      End If
+      s = re.Replace(s, "$1<font class=""$2"">$3</font>$4")
     End If
   Else
-    If s1 = vbNullString Then
-      GoSub tach
-    End If
-    re.Pattern = "(?:</td>)?<td[^<>]*class=(xl\d+)[^<>]*><font [^<>]*(face[^<>]+>)([^<>]+)"
+    re.Pattern = "(<td[^<>]*class=(xl\d+)[^<>]*>)[\r\n]*<font[\r\n ]*face([^<>]*?>)"
     If re.test(s) Then
-      Debug.Print " testtesttest"
-      s = re.Replace(s, "<font class=""$1"" $2" & s5 & "$3")
+      s = re.Replace(s, "$1<font class=""$2"" face$3")
     End If
-    s = s4 & s
   End If
-  re.Pattern = "</td>[\r\n ]*?<font"
-  If re.test(s) Then s = re.Replace(s, "<font")
-Return
-tach:
+  
+  If s1 = vbNullString Then
+    p2 = Split(s, "</td>", 2, 1)
+    p(0) = p(0) & p2(0) & "</td>"
+    s = p2(1)
+  End If
+  
+  re.Pattern = "(<td [^>]*>[\r\n]*<font [^>]+>)((?:[\r\n]|.)+?</td>)"
+  If re.test(s) Then
+    s = re.Replace(s, "$1" & s5 & "$2")
+  End If
 
-  p = Split(s, "<td ", 2, 1)
-  s4 = p(0) & "<td "
-  p = Split(p(1), "'>", 2, 1)
-  s4 = s4 & p(0) & "'>"
-  s = p(1)
+  p(1) = s
+  s = Join(p, "")
+  s = Replace(s, "<![endif]>", "")
+  re.Pattern = "</td>[\r\n ]*?<td [^<>]*?>"
+  If re.test(s) Then s = re.Replace(s, "")
 Return
+
 End Sub
 
 Sub FileFastSave(Text$, Optional FileName$, Optional ByVal newfile As Boolean, Optional ByVal deleteAfterOpen As Boolean)
@@ -708,5 +710,6 @@ End Function
 
 
 #End If
+
 
 
