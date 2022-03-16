@@ -197,7 +197,7 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   
   Dim p1, i&, ovs As Boolean, b As Boolean
   Dim re, re2, mre, i2, ims
-  ovs = Application.Version < 16
+  ovs = Application.Version < 15
   rs = toCell.rows.Count
   cs = toCell.Columns.Count
 
