@@ -308,7 +308,7 @@ re:
     s1 = s
     re.Global = 0: re.Pattern = "</font>[^<>]*</td>[^<>]*</tr>"
     s1 = re.Replace(s1, "</font></td></tr>")
-    re.Pattern = "(\})[^\-]*(\-\->)"
+    re.Pattern = "(;\})[\r\n ]*(\-\->)"
     s1 = re.Replace(s1, "$1$2")
   End If
 Return
@@ -531,7 +531,6 @@ End Function
 
 Function savedClipboardText(Optional reset As Boolean) As Boolean
   Static c$
-  Debug.Print "savedClipboardText: "; reset
   If c = vbNullString Then
     If Not reset Then
       c = ClipBoard
@@ -608,8 +607,8 @@ Function ClipBoard()
   '' Obtain the handle to the global memory
   '' block that is referencing the text.
   
-  i = CF_TEXT: GoSub r
   i = 13: GoSub r
+  i = CF_TEXT: GoSub r
 OutOfHere:
   RetVal = CloseClipboard()
   ClipBoard = MyString
