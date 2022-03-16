@@ -10,24 +10,28 @@ Public Const urlGithub = "https://github.com/SanbiVN/JoinCellsSavedFormated_Exce
 ''
 #Else
   #If VBA7 Then
-    Private Declare PtrSafe Function SetTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As LongPtr, ByVal lpTimerFunc As LongPtr) As Long
-    Private Declare PtrSafe Function KillTimer Lib "User32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
+    Private Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As LongPtr, ByVal lpTimerFunc As LongPtr) As Long
+    Private Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
   #Else
     Private Declare Function SetTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
     Private Declare Function KillTimer Lib "user32" (ByVal HWnd As Long, ByVal nIDEvent As Long) As Long
   #End If
   #If VBA7 Then
-    Private Declare PtrSafe Function GetClipboardData Lib "User32" (ByVal wFormat As LongPtr) As LongPtr
+    Private Declare PtrSafe Function EnumClipboardFormats Lib "user32" (ByVal wFormat As Long) As Long
+    Private Declare PtrSafe Function IsClipboardFormatAvailable Lib "user32" (ByVal wFormat As LongPtr) As Long
+    Private Declare PtrSafe Function GetClipboardData Lib "user32" (ByVal wFormat As LongPtr) As LongPtr
     Private Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
     Private Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
     Private Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, ByVal dwBytes As LongPtr) As LongPtr
-    Private Declare PtrSafe Function CloseClipboard Lib "User32" () As Long
-    Private Declare PtrSafe Function OpenClipboard Lib "User32" (ByVal hwnd As LongPtr) As LongPtr
-    Private Declare PtrSafe Function EmptyClipboard Lib "User32" () As Long
+    Private Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
+    Private Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
+    Private Declare PtrSafe Function EmptyClipboard Lib "user32" () As Long
     Private Declare PtrSafe Function lstrcpy Lib "kernel32" (ByVal lpString1 As Any, ByVal lpString2 As Any) As LongPtr
-    Private Declare PtrSafe Function SetClipboardData Lib "User32" (ByVal wFormat As Long, ByVal hMem As LongPtr) As LongPtr
+    Private Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As Long, ByVal hMem As LongPtr) As LongPtr
     Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (destination As Any, Source As Any, ByVal length As LongPtr)
   #Else
+    Private Declare Function EnumClipboardFormats Lib "user32" (ByVal wFormat As Long) As Long
+    Private Declare Function IsClipboardFormatAvailable Lib "user32" (ByVal wFormat As Long) As Long
     Private Declare Function GetClipboardData Lib "User32" (ByVal wFormat As  Long) As Long
     Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
     Private Declare Function GlobalUnlock Lib "kernel32" (ByVal hMem As Long) As Long
@@ -54,7 +58,7 @@ End Type
 
 
 ''''///////////////////////////////////////////////////////
-Public ContainCells As New VBA.Collection, FitDisable As Boolean
+Public ContainCells As New VBA.Collection
 Private Works() As FontFormatArguments
 Private Sub s_join_test()
   Debug.Print UBound(Works)
@@ -62,17 +66,19 @@ End Sub
 Function S_joinF(ByVal toCell As Range, _
                   ByVal sentenceSpace As String, _
                   ParamArray Cells())
-  On Error Resume Next
+  
 
   Dim r As Object, s$, k%, i%
   Set r = Application.caller
   s = r.Address(0, 0, external:=1)
   If r.Parent.ProtectContents Then
     S_joinF = "S_joinF: Locked"
-  Else
-    S_joinF = "S_joinF: " & ChrW(272) & "ang g" & ChrW(7897) & "p"
+    Exit Function
   End If
+  On Error Resume Next
   k = UBound(Works)
+  S_joinF = "S_joinF: " & ChrW(272) & "ang g" & ChrW(7897) & "p"
+  On Error GoTo 0
   For i = 1 To k
     With Works(i)
       If .callerAddress = s Then
@@ -104,17 +110,14 @@ n:
   On Error GoTo 0
 End Function
 #If VBA7 And Win64 Then
-Public Sub S_joinF_callback(ByVal hwnd As LongPtr, ByVal wMsg^, ByVal idEvent As LongPtr, ByVal dwTime^)
+Private Sub S_joinF_callback(ByVal hwnd As LongPtr, ByVal wMsg^, ByVal idEvent As LongPtr, ByVal dwTime^)
 #Else
-Public Sub S_joinF_callback(ByVal hwnd&, ByVal wMsg&, ByVal idEvent&, ByVal dwTime&)
+Private Sub S_joinF_callback(ByVal hwnd&, ByVal wMsg&, ByVal idEvent&, ByVal dwTime&)
 #End If
   On Error Resume Next
   KillTimer 0&, idEvent
   On Error GoTo 0
-  If Not FitDisable Then
-    FitDisable = True
-    Exit Sub
-  End If
+
   S_joinF_working
 End Sub
 
@@ -123,7 +126,7 @@ Sub S_joinF_working()
   Dim u%, su As Boolean, Ac As Boolean, ec As Boolean, c As Object
   On Error Resume Next
   u = UBound(Works)
-  On Error GoTo 0
+  'On Error GoTo 0
   If u = 0 Then
     Exit Sub
   End If
@@ -134,7 +137,8 @@ Sub S_joinF_working()
       If b.caller.Formula = b.Formula Then
         If A Is Nothing Then
           Set c = Application.ActiveSheet
-          'Call savedClipboardText
+          If Not c Is Nothing Then Set c = ActiveCell
+          Call savedClipboardText
           Set A = b.caller.Parent.Parent.Parent
           su = A.ScreenUpdating
           Ac = A.Calculation
@@ -158,10 +162,11 @@ n:
     Erase Works
   End If
   If Not A Is Nothing Then
-    If Not c Is Nothing And Not c Is Application.ActiveSheet Then
-      c.Activate
+    If Not c Is Nothing Then
+      c.Parent.Activate
+      c.Select
     End If
-    'Call savedClipboardText
+    Call savedClipboardText(True)
     If su And A.ScreenUpdating <> su Then
       A.ScreenUpdating = su
     End If
@@ -180,6 +185,7 @@ Private Sub AddCellHasFormatByHtml_test()
 End Sub
 
 Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, ParamArray Cells())
+  Debug.Print "AddCellHasFormatByHtml"
   Const n_ = vbNullString
   ''On Error Resume Next
   Dim rs, cs
@@ -193,6 +199,7 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
   rs = toCell.rows.Count
   cs = toCell.Columns.Count
   s5 = sentenceSpace
+
   Set re = glbRegex
   Set re2 = glbRegex
 
@@ -242,6 +249,7 @@ e:
 Exit Sub
 Cell:
   On Error Resume Next
+  
   Set rg = Nothing
   Set rg = target.Find("*")
   If rg Is Nothing Then
@@ -312,6 +320,11 @@ ver:
     s = re.Replace(s, "")
   End If
 
+  re.Pattern = "<tr [^<>]*>([\r\n ]*<td [^<>]*>[\r\n]*</td>[^<>]*)+</tr>[^<>]*"
+  If re.test(s) Then
+    s = re.Replace(s, "")
+  End If
+  
   re.Pattern = "[\r\n ]*</tr>[^<>]*<tr [^<>]*>[\r\n ]*"
   If re.test(s) Then
     s = re.Replace(s, "")
@@ -321,11 +334,7 @@ ver:
   
   re.Global = True
   If ovs Then
-    p = Split(s, "<td ", 2, 1)
-    s4 = p(0) & "<td "
-    p = Split(p(1), "'>", 2, 1)
-    s4 = s4 & p(0) & "'>"
-    s = p(1)
+    GoSub tach
     re.Pattern = "(?:</td>)?[^<>]*<td[^<>]*class=(xl\d+)[^<>]*>((?:[\r\n]|.)+?)((?:<font)|(?:</td>))"
     If re.test(s) Then
       s = re.Replace(s, "<font class=""$1"">" & s5 & "$2</font>$3")
@@ -338,12 +347,26 @@ ver:
       End If
     End If
   Else
-    re.Pattern = "<td[^<>]*class=(xl\d+)[^<>]*><font (face[^<>]*>)"
-    If re.test(s) Then s = re.Replace(s, "<font class=""$1"" $2" & s5)
-    re.Pattern = "</td>[^<>]*?<td[^<>]*?>"
-    If re.test(s) Then s = re.Replace(s, "")
+    If s1 = vbNullString Then
+      GoSub tach
+    End If
+    re.Pattern = "(?:</td>)?<td[^<>]*class=(xl\d+)[^<>]*><font [^<>]*(face[^<>]+>)([^<>]+)"
+    If re.test(s) Then
+      Debug.Print " testtesttest"
+      s = re.Replace(s, "<font class=""$1"" $2" & s5 & "$3")
+    End If
     s = s4 & s
   End If
+  re.Pattern = "</td>[\r\n ]*?<font"
+  If re.test(s) Then s = re.Replace(s, "<font")
+Return
+tach:
+
+  p = Split(s, "<td ", 2, 1)
+  s4 = p(0) & "<td "
+  p = Split(p(1), "'>", 2, 1)
+  s4 = s4 & p(0) & "'>"
+  s = p(1)
 Return
 End Sub
 
@@ -476,7 +499,7 @@ Private Function NewHeightArea(ByVal MergeCells As Range, ByVal height!) As Bool
     GoSub r
   Loop
 e:
-  Debug.Print "NewHeightArea-Timer: "; Round(Timer - t, 2)
+  'Debug.Print "NewHeightArea-Timer: "; Round(Timer - t, 2)
   NewHeightArea = True
 
 Exit Function
@@ -504,14 +527,19 @@ Public Function readHTMLFile2(strFile As String) As String
 End Function
 
 
-Function savedClipboardText() As Boolean
-  Static ClipboardText$
-  If ClipboardText = vbNullString Then
-    ClipboardText = ClipBoard
-    savedClipboardText = ClipboardText <> vbNullString
+Function savedClipboardText(Optional reset As Boolean) As Boolean
+  Static c$
+  Debug.Print "savedClipboardText: "; reset
+  If c = vbNullString Then
+    If Not reset Then
+      c = ClipBoard
+      savedClipboardText = c <> vbNullString
+    End If
   Else
-    TextToClipBoard ClipboardText
-    ClipboardText = vbNullString
+    If reset Then
+      TextToClipBoard c
+      c = vbNullString
+    End If
   End If
 End Function
 
@@ -557,58 +585,72 @@ Function ClipBoard()
   Const GHND = &H42
   Const CF_TEXT = 1
   Const MAXSIZE = 4096
-
-    #If VBA7 Then
-      Dim hGlobalMemory     As LongPtr
-      Dim hClipMemory       As LongPtr
-      Dim lpGlobalMemory    As LongPtr
-      Dim lpClipMemory  As LongPtr
-      Dim RetVal As LongPtr
-    #Else
-      Dim hGlobalMemory     As Long
-      Dim hClipMemory       As Long
-      Dim lpGlobalMemory    As Long
-      Dim lpClipMemory  As Long
-   Dim RetVal As Long
-    #End If
-   
-   Dim MyString As String
-
-   If OpenClipboard(0&) = 0 Then
-      ''MsgBox "Cannot open Clipboard. Another app. may have it open"
-      Exit Function
-   End If
-
-   '' Obtain the handle to the global memory
-   '' block that is referencing the text.
-   hClipMemory = GetClipboardData(CF_TEXT)
-   If IsNull(hClipMemory) Then
-      MsgBox "Could not allocate memory"
-      GoTo OutOfHere
-   End If
-
-   '' Lock Clipboard memory so we can reference
-   '' the actual data string.
-   lpClipMemory = GlobalLock(hClipMemory)
-
-   If Not IsNull(lpClipMemory) Then
-      MyString = Space$(MAXSIZE)
-      RetVal = lstrcpy(MyString, lpClipMemory)
-      RetVal = GlobalUnlock(hClipMemory)
-
-      '' Peel off the null terminating character.
-      MyString = Mid(MyString, 1, InStr(1, MyString, Chr$(0), 0) - 1)
-   Else
-      ''MsgBox "Could not lock memory to copy string from."
-   End If
-
+  #If VBA7 Then
+  Dim hGlobalMemory     As LongPtr
+  Dim hClipMemory       As LongPtr
+  Dim lpGlobalMemory    As LongPtr
+  Dim lpClipMemory  As LongPtr
+  Dim RetVal As LongPtr
+  #Else
+  Dim hGlobalMemory     As Long
+  Dim hClipMemory       As Long
+  Dim lpGlobalMemory    As Long
+  Dim lpClipMemory  As Long
+  Dim RetVal As Long
+  #End If
+  Dim MyString As String, i&
+  If OpenClipboard(0&) = 0 Then
+    ''MsgBox "Cannot open Clipboard. Another app. may have it open"
+    Exit Function
+  End If
+  '' Obtain the handle to the global memory
+  '' block that is referencing the text.
+  
+  i = CF_TEXT: GoSub r
+  i = 13: GoSub r
 OutOfHere:
-
-   RetVal = CloseClipboard()
-   ClipBoard = MyString
-
+  RetVal = CloseClipboard()
+  ClipBoard = MyString
+Exit Function
+r:
+  If IsClipboardFormatAvailable(i) = 0 Then Return
+  hClipMemory = GetClipboardData(i)
+  If IsNull(hClipMemory) Then
+    Return
+  End If
+  '' Lock Clipboard memory so we can reference
+  '' the actual data string.
+  lpClipMemory = GlobalLock(hClipMemory)
+  If Not IsNull(lpClipMemory) Then
+    MyString = Space$(MAXSIZE)
+    RetVal = lstrcpy(MyString, lpClipMemory)
+    RetVal = GlobalUnlock(hClipMemory)
+    '' Peel off the null terminating character.
+    MyString = Mid(MyString, 1, InStr(1, MyString, Chr$(0), 0) - 1)
+    GoTo OutOfHere
+  End If
+Return
 End Function
 
+Function getTheClipboardType():
+  Dim formats, lastFormat, nextFormat
+  If OpenClipboard(0&) = 0 Then
+    Exit Function
+  End If
+  lastFormat = 0
+  Do
+    nextFormat = EnumClipboardFormats(lastFormat)
+    If nextFormat = 0 Then
+      Exit Do
+    Else
+      Debug.Print nextFormat
+      lastFormat = nextFormat
+    End If
+  Loop
+  CloseClipboard
+End Function
+
+    
 Function glbHTMLFile(Optional staticObject As Boolean, Optional release As Boolean) As Object
   Const s$ = "HTMLFile"
   If staticObject Or release Then
