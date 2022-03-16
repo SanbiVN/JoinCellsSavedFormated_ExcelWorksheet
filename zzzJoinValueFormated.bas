@@ -241,9 +241,9 @@ Private Sub AddCellHasFormatByHtml(ByVal toCell As Range, ByVal sentenceSpace$, 
       .VerticalAlignment = ft.VerticalAlignment
       .WrapText = True
     End With
-    If toCell.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
-      SetNewWidthArea toCell, ft
-    End If
+'    If toCell.Columns.Address(external:=1) <> ft.Columns.Address(external:=1) Then
+'      SetNewWidthArea toCell, ft
+'    End If
   End If
   Application.DisplayAlerts = True
 e:
