@@ -1,4 +1,4 @@
-# JoinCellsSavedFormated_ExcelWorksheet
+# JoinCellsSaveFormatted_ExcelWorksheet
  Join Cells Save Formatted - Excel Worksheet
 HÀM UDF TỰ ĐỘNG NỐI CHUỖI GIỮ ĐỊNH DẠNG
 
